@@ -1,11 +1,7 @@
-# Documentos Adicionales (Opcional)
+# Additional docs (Optional)
 
-•	Presentación PowerPoint 
-
-•	Flayers
-
-•	Videos/demo Adicionales
-
-•	Protocolos
-
-•	Guías
+PowerPoint presentation
+Flayers
+Additional videos/demo
+Protocols
+Guides
