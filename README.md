@@ -69,5 +69,7 @@ Location: /docs
 •Protocols
 •Guides
 
+# 9. Terms and Conditions
+By submitting this solution to the Mental Health Safety Sandbox Hackathon, you or your team acknowledges and agrees to abide by the Event’s [Terms and Conditions](link to the T&C).
 
-•	Guías 
+
