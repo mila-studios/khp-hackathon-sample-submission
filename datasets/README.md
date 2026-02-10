@@ -1,11 +1,8 @@
 # Datasets
 
-Una lista de conjuntos de datos, fuentes y desafíos para el proyecto. Esto incluiría:
+A list of data sets, sources and challenges for the research project. This would include:
 
-• Acceso API a los datos requeridos
+API access to required data
+Access to other datasets (either through API or downloaded)
+Statements on data quality issues, transformations needed
 
-• Acceso a otros conjuntos de datos (ya sea a través de API o descargados)
-
-• Declaraciones sobre problemas de calidad de datos, transformaciones necesarias
-
-• Contenedor para nuevos datos generados para esta investigación (es decir, mediante la fusión de otros conjuntos de datos)
