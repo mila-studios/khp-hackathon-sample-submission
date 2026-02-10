@@ -1,70 +1,73 @@
-# DataJam Pasos Libres 2024 – Nombre del Proyecto
+# Hackathon - Project name
 
-Este es un repositorio de proyectos de investigación en el ámbito de la esclavitud moderna. Incluye todas las ideas de proyectos o temas de investigación que serían útiles para nuestro proyecto.
-Esto incluiría lo siguiente:
+This is a repository for research projects on mental health issues. It includes all future related project ideas or research topics that would be useful for our project.
+Each topic would have a separate repository. This would include the following:
 
-# 1. Planteamiento del Problema
+# 1. Problem Statement
 
-Una descripción del problema que se busca abordar.
+A description of an issue to be addressed.
 
-# 2. Objetivo
+# 2. Objective
 
-Objetivo de las soluciones (el desafío, problema o necesidad que contribuye a resolver).
+Objective of the solutions (the challenge, problem or need that it contributes to solve).
 
-# 3. Descripción Solución/Caso Uso de Datos
+# 3. Solution/Data use case description
 
-Una descripción completa de la solución basada en datos o el caso de uso de datos.
+A comprehensive description of the data-based solution or/and data use case.
 
 # 4. Pitch
 
-Un pitch de máximo 4 minutos.
+A pitch of maximum 5 minutes.
 
-Sugerencia: se recomienda agregar aquí solo enlaces, por ejemplo, a la grabación de Youtube:
+Hint: Recommended is to add here just link(s), for example to Youtube recording:
 
-Ejemplo: [link to video](https://www.youtube.com/watch?v=xUcB90b2HMs&ab_channel=GitHub)
+Example location: link to video
 
-GitHub Limitaciones:
+GitHub Limitations:
 
-•100MB por archivo
+•	100MB per file
+•	10GB per repository
 
-•10GB por repositorio
+# 5. Demo
 
-# 5. Datasets
+A functional or conceptual demonstration of the solution showing how it works in practice.
 
-Locación: /[datasets](https://github.com/DataJam-Pasos-Libres-2024/Project-Template/tree/main/datasets)
+The demo may include one or more of the following:
 
-Una lista de conjuntos de datos, fuentes y desafíos para el proyecto. Esto incluiría:
+•	A short screen recording of the prototype or dashboard
+•	A walkthrough of the data pipeline or model results
+•	A mock user journey (for early-stage concepts)
 
-•	Acceso API a los datos requeridos
+# 6. Datasets
 
-•	Acceso a otros conjuntos de datos (ya sea a través de API o descargados)
+Location: /datasets
 
-•	Declaraciones sobre problemas de calidad de datos, transformaciones necesarias
+A list of data sets, sources and challenges for the research project. This would include:
 
-•	Contenedor para nuevos datos generados para esta investigación (es decir, mediante la fusión de otros conjuntos de datos)
+•	API access to required data
+•	Access to other datasets (either through API or downloaded)
+•	Statements on data quality issues, transformations needed
+•	Container for new data generated for this research (i.e. through merging other data sets)
 
-# 6. Código Proyecto
+# 7. Project Code
 
-Locación: /[project](https://github.com/DataJam-Pasos-Libres-2024/Project-Template/tree/main/project)
+Location: /project
 
-Esto incluiría lo siguiente:
+This would include the following:
 
-•	Transformaciones de datos, fusión y garantía de calidad
+•	Data transformations, merging & quality assurance
+•	Model related code (projection, prediction, correlation etc.)
+•	User Interface code
 
-•	Código relacionado con el modelo (proyección, predicción, correlación, etc.)
+# 8. Additional docs (Optional)
 
-•	Código de interfaz de usuario
+Location: /docs
 
-# 7. Documentos Adicionales (Opcional)
+•PowerPoint presentation
+•Flayers
+•Additional videos/demo
+•Protocols
+•Guides
 
-Locación: /[docs](https://github.com/DataJam-Pasos-Libres-2024/Project-Template/tree/main/docs)
-
-•	Presentación PowerPoint 
-
-•	Flayers
-
-•	Videos/demo Adicionales
-
-•	Protocolos
 
 •	Guías 
