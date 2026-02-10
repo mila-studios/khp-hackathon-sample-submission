@@ -1,9 +1,7 @@
-# Código Proyecto
+# Project Code
 
-Esto incluiría lo siguiente:
+This would include the following:
 
-•	Transformaciones de datos, fusión y garantía de calidad
-
-•	Código relacionado con el modelo (proyección, predicción, correlación, etc.)
-
-•	Código de interfaz de usuario
+Data transformations, merging & quality assurance
+Model related code (projection, prediction, correlation etc.)
+User Interface code
