@@ -1,87 +1,162 @@
-# Hackathon - Project name
+# Mental Health Safety Sandbox Hackathon
 
-This is a repository for research projects on mental health issues. It includes all future related project ideas or research topics that would be useful for our project.
-Each topic would have a separate repository. This would include the following:
+Welcome to the Mental Health Safety Sandbox Hackathon. This repository contains the starter code, evaluation framework, and documentation you need to build and submit content-safety guardrails for a chat pipeline.
 
-# 1. Problem Statement
+---
 
-A description of an issue to be addressed.
+## Quick start
 
-# 2. Objective
+1. **Install dependencies** (see [Installation](#installation) below).
+2. **Run the demo pipeline** from the `project/` directory to verify your setup.
+3. **Build your guardrails** using the [Guardrails framework](project/src/guardrails/README.md) (LLM judge, classifier, or custom).
+4. **Submit** by implementing `get_guardrails()` as described in [Benchmark & submission](project/src/benchmark/PARTICIPANT_README.md).
 
-Objective of the solutions (the challenge, problem or need that it contributes to solve).
+---
 
-# 3. Solution/Data use case description
+## Repository structure
 
-A comprehensive description of the data-based solution or/and data use case.
+| Path | Description |
+|------|-------------|
+| **`project/`** | Main code: chat pipeline, guardrails, providers, notebooks. **Do your development here.** |
+| **`project/README.md`** | Setup and run instructions for the project. |
+| **`project/src/guardrails/`** | Guardrail framework and built-in implementations (LLM judge, classifier). |
+| **`project/src/benchmark/`** | Submission contract, example submissions, and evaluation runner. |
+| **`project/notebooks/`** | Example notebook for testing the chat pipeline. |
+| **`project/providers/`** | LLM providers (OpenAI, Cohere, demo). |
+| **`datasets/`** | Datasets and data sources (if provided). |
+| **`docs/`** | Additional docs (presentations, guides). |
 
-# 4. Pitch
+---
 
-A pitch of maximum 5 minutes.
+## Installation
 
-Hint: Recommended is to add here just link(s), for example to Youtube recording:
+**Requirements:** Python 3.12 or later. We recommend [uv](https://docs.astral.sh/uv/) for fast, reproducible installs.
 
-Example location: link to video
+### 1. Install uv (optional but recommended)
 
-GitHub Limitations:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-•	100MB per file
+Or with pip: `pip install uv`.
 
-•	10GB per repository
+### 2. Clone the repository
 
-# 5. Demo
+```bash
+git clone <repository-url>
+cd Mental-Health-Safety-Sandbox-Hackathon-
+```
 
-A functional or conceptual demonstration of the solution showing how it works in practice.
+### 3. Create environment and install
 
-The demo may include one or more of the following:
+From the **repository root** (where `pyproject.toml` is):
 
-•	A short screen recording of the prototype or dashboard
+```bash
+uv venv
+source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+uv pip install -e .
+```
 
-•	A walkthrough of the data pipeline or model results
+Alternatively with pip:
 
-•	A mock user journey (for early-stage concepts)
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
 
-# 6. Datasets
+### 4. Verify: run the chat pipeline
 
-Location: /datasets
+From the **project** directory (so `src` and `providers` are on the path):
 
-A list of data sets, sources and challenges for the research project. This would include:
+```bash
+cd project
+PYTHONPATH=. python -c "
+from src.end_to_end.chat_pipeline import ChatPipeline
+from providers.demo_provider import DemoProvider
+p = ChatPipeline(main_llm_provider=DemoProvider(model='demo'))
+print(p.process('Hello').response)
+"
+```
 
-•	API access to required data
+You can also open `project/notebooks/chat_pipeline_test.ipynb`, set the kernel working directory to `project/`, and run the cells.
 
-•	Access to other datasets (either through API or downloaded)
+### 5. Environment variables (optional)
 
-•	Statements on data quality issues, transformations needed
+- **OpenAI:** set `OPENAI_API_KEY`.
+- **Cohere:** set `COHERE_BASE_URL` (and optionally `COHERE_SYSTEM_PROMPT`).
 
-•	Container for new data generated for this research (i.e. through merging other data sets)
+Use a `.env` file in the repository root if you like; `python-dotenv` is already a dependency.
 
-# 7. Project Code
+---
 
-Location: /project
+## Hackathon submission checklist
 
-This would include the following:
+Use this structure when preparing your submission and pitch.
 
-•	Data transformations, merging & quality assurance
+### 1. Problem statement
 
-•	Model related code (projection, prediction, correlation etc.)
+A short description of the mental-health or safety issue your solution addresses.
 
-•	User Interface code
+### 2. Objective
 
-# 8. Additional docs (Optional)
+The challenge or need your solution contributes to solving.
 
-Location: /docs
+### 3. Solution / data use case
 
-•PowerPoint presentation
+A clear description of your data-based solution and how you use data (and guardrails) in the pipeline.
 
-•Flayers
+### 4. Pitch
 
-•Additional videos/demo
+A pitch of **maximum 5 minutes**.  
+Recommended: add a link here (e.g. YouTube recording).
 
-•Protocols
+*Example: [Link to video]*
 
-•Guides
+**GitHub limits:** 100MB per file, 10GB per repository.
 
-# 9. Terms and Conditions
-By submitting this solution to the Mental Health Safety Sandbox Hackathon, you or your team acknowledges and agrees to abide by the Event’s [Terms and Conditions](link to the T&C).
+### 5. Demo
 
+A functional or conceptual demo showing how your solution works, e.g.:
 
+- Short screen recording of the prototype or dashboard  
+- Walkthrough of the pipeline or model results  
+- Mock user journey (for early-stage concepts)
+
+### 6. Datasets
+
+**Location:** `/datasets`
+
+Include:
+
+- API access or download links for required data  
+- Notes on data quality and any transformations  
+- Any new data you generated (e.g. by merging datasets)
+
+### 7. Project code
+
+**Location:** `/project`
+
+Your code should cover:
+
+- Data transformations, merging, and quality checks  
+- Model-related code (e.g. classifiers, guardrails)  
+- Any user interface or demo scripts
+
+### 8. Additional docs (optional)
+
+**Location:** `/docs`
+
+- Slides, flyers, extra videos, protocols, or guides
+
+### 9. Terms and conditions
+
+By submitting to the Mental Health Safety Sandbox Hackathon, you acknowledge and agree to the event’s [Terms and Conditions](link to the T&C).
+
+---
+
+## Next steps
+
+- **Set up and run:** [project/README.md](project/README.md)  
+- **Implement guardrails:** [project/src/guardrails/README.md](project/src/guardrails/README.md)  
+- **Benchmark and submit:** [project/src/benchmark/PARTICIPANT_README.md](project/src/benchmark/PARTICIPANT_README.md)
