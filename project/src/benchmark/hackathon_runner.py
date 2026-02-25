@@ -23,11 +23,10 @@ Example submission lives in this folder (src/benchmark/); participants copy and 
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 # Ensure project root is on path so src.benchmark and src.end_to_end are importable
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -41,36 +40,7 @@ from src.benchmark.metrics import summary_output_name
 from src.benchmark.providers import create_llm_provider
 from src.benchmark.stages import BASE_RESPONSES_TARGET, _build_fieldnames
 from src.end_to_end.chat_pipeline import ChatPipeline, PipelineStatus, PipelineStage
-
-
-def _load_guardrails_from_module(module_path: Path) -> Tuple[Any, Any]:
-    """Load a Python module and call get_guardrails() with no arguments.
-
-    Returns (input_guardrail, output_guardrail). Each may be None, a single guardrail,
-    or a list/tuple of guardrails (stack); stacks run in order and short-circuit on
-    first failure. The runner builds the ChatPipeline; participants only return guardrails.
-    """
-    # Add submission directory to path so participant can import sibling modules
-    submission_dir = str(module_path.resolve().parent)
-    if submission_dir not in sys.path:
-        sys.path.insert(0, submission_dir)
-
-    spec = importlib.util.spec_from_file_location("participant_submission", module_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Cannot load module: {module_path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    get_guardrails = getattr(module, "get_guardrails", None)
-    if get_guardrails is None:
-        raise RuntimeError(
-            "Module must define get_guardrails() -> (input_guardrail, output_guardrail)"
-        )
-    result = get_guardrails()
-    if not isinstance(result, (list, tuple)) or len(result) != 2:
-        raise TypeError(
-            "get_guardrails() must return (input_guardrail, output_guardrail), a tuple or list of length 2"
-        )
-    return result[0], result[1]
+from src.guardrails.submission_loader import load_guardrails_from_module
 
 
 def _build_pipeline(
@@ -292,7 +262,7 @@ def main(
     system_prompt = (config.get("pipeline") or {}).get("system_prompt")
 
     print("Loading guardrails from", submission, flush=True)
-    input_guardrail, output_guardrail = _load_guardrails_from_module(submission)
+    input_guardrail, output_guardrail = load_guardrails_from_module(submission)
     print("Building ChatPipeline (fixed main LLM + system prompt + your guardrails)...", flush=True)
     pipeline = _build_pipeline(
         main_llm_provider, system_prompt, input_guardrail, output_guardrail

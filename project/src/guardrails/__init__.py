@@ -20,6 +20,16 @@ from .base import (
 )
 from .llm_judge import LLMJudgeGuardrail
 from .classifier import ClassifierGuardrail, load_classifier_guardrail
+from .metrics import (
+    GuardrailMetricsResult,
+    get_predictions,
+    compute_metrics_from_predictions,
+)
+from .submission_loader import (
+    load_guardrails_from_module,
+    load_evaluation_data,
+    write_predictions_csv,
+)
 
 # Base exports (always available)
 __all__ = [
@@ -36,4 +46,11 @@ __all__ = [
     # Finetunable classifier guardrail (load with load_classifier_guardrail)
     "ClassifierGuardrail",
     "load_classifier_guardrail",
+    # Metrics (precision, recall, F1, latency)
+    "GuardrailMetricsResult",
+    "get_predictions",
+    "compute_metrics_from_predictions",
+    "load_guardrails_from_module",
+    "load_evaluation_data",
+    "write_predictions_csv",
 ]

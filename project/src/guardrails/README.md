@@ -114,4 +114,33 @@ Both implement `BaseGuardrail` and the protocol; they can be mixed in the same s
 | **`base.py`** | `GuardrailProtocol`, `BaseGuardrail`, `GuardrailResult`, `GuardrailConfig`, `GuardrailStatus`, `EvaluationType`. |
 | **`llm_judge.py`** | `LLMJudgeGuardrail`. |
 | **`classifier.py`** | `ClassifierGuardrail`, `load_classifier_guardrail`. |
+| **`metrics.py`** | `get_predictions()`, `compute_metrics_from_predictions()`, `GuardrailMetricsResult` — run guardrails for per-sample predictions; compute precision, recall, F1 and latency from predictions. |
 | **`__init__.py`** | Re-exports for `from src.guardrails import ...`. |
+
+---
+
+## Guardrail metrics (precision, recall, F1, latency)
+
+Use **`get_predictions()`** to run a guardrail (or stack) on labeled data and get per-sample predictions. For stacked guardrails, the combined prediction is “harmful” if *any* guardrail in the stack returns a harmful result. Then use **`compute_metrics_from_predictions()`** to get precision, recall, F1 and latency from that list. Works for both LLM and classifier guardrails.
+
+```python
+from src.guardrails import get_predictions, compute_metrics_from_predictions
+from src.guardrails.base import EvaluationType
+
+# evaluation_data: list of dicts with "content" and "label" (1/True = harmful)
+data = [{"content": "How to hurt someone?", "label": 1}, {"content": "Tips for sleep.", "label": 0}]
+predictions = get_predictions(
+    input_guardrail, data,
+    evaluation_type=EvaluationType.USER_INPUT,
+    include_latency=True,
+)
+result = compute_metrics_from_predictions(predictions)
+# result.precision, result.recall, result.f1, result.latency_ms_mean, result.latency_ms_total
+```
+
+From the command line, use a two-step workflow:
+
+1. **`scripts/get_predictions.py`** — loads guardrails via `get_guardrails()` from a submission module, runs the input guardrail on a labeled CSV, and writes `predictions_input.csv`.
+2. **`scripts/get_guardrail_metrics.py`** — reads that prediction CSV and computes precision, recall, F1 and latency, writing metrics JSON and `metrics.csv`.
+
+You can also call **`compute_metrics_from_predictions()`** on an existing list of prediction dicts (e.g. loaded from a CSV from `get_predictions.py`); see `metrics.py` for the signature.
