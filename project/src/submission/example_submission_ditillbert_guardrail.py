@@ -27,8 +27,8 @@ def get_guardrails() -> Tuple[Optional[Any], Optional[Any]]:
     """Return (input_guardrail, output_guardrail) for ChatPipeline."""
     # Update this path to your own finetuned model directory (under project/).
     # Example training command (run from project/ or with full paths):
-    # python scripts/train_classifier_guardrail.py \
-    #   --data scripts/distilbert_demo_data.csv \
+    # python -m src.guardrails.train_classifier_guardrail \
+    #   --data ../datasets/distilbert_demo_data.csv \
     #   --output_dir models/distilbert_guardrail_demo \
     #   --base_model distilbert-base-uncased
     model_path = _PROJECT_ROOT / "models" / "distilbert_guardrail_demo"

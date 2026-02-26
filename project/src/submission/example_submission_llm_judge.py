@@ -78,17 +78,7 @@ def get_guardrails() -> Tuple[Optional[Any], Optional[Any]]:
         llm_provider=judge_llm,
     )
 
-    output_guardrail = LLMJudgeGuardrail(
-        config=GuardrailConfig(
-            name="output_llm_judge",
-            description="LLM Judge for output safety",
-            threshold=0.6,
-            fail_open=False,
-            max_retries=2,
-        ),
-        llm_provider=judge_llm,
-    )
-
+    output_guardrail = None
     return (input_guardrail, output_guardrail)
 
 

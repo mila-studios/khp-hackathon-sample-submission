@@ -15,21 +15,27 @@ fi
 PREDICTIONS_CSV="$1"
 EVAL_METRICS_CSV="$2"
 
+# Invocation dir: where the user ran the script from (e.g. repo root)
+INVOKED_DIR="$(pwd)"
 # Project root = parent of scripts/
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Resolve paths relative to invocation dir so "results/predictions.csv" from repo root works after we cd to project/
+[[ "$PREDICTIONS_CSV" != /* ]] && PREDICTIONS_CSV="$INVOKED_DIR/$PREDICTIONS_CSV"
+[[ "$EVAL_METRICS_CSV" != /* ]] && EVAL_METRICS_CSV="$INVOKED_DIR/$EVAL_METRICS_CSV"
 
 if [[ ! -f "$PREDICTIONS_CSV" ]]; then
   echo "Predictions CSV not found: $PREDICTIONS_CSV" >&2
   exit 1
 fi
 
-# get_guardrail_metrics.py writes metrics.csv to the same dir as --output (JSON)
+# get_guardrail_metrics writes metrics.csv to the same dir as --output (JSON)
 OUTPUT_DIR="$(dirname "$EVAL_METRICS_CSV")"
 mkdir -p "$OUTPUT_DIR"
 
 cd "$PROJECT_ROOT"
-PYTHONPATH=. python scripts/get_guardrail_metrics.py \
+PYTHONPATH=. python -m src.guardrails.get_guardrail_metrics \
   --predictions "$PREDICTIONS_CSV" \
   --output "$OUTPUT_DIR/eval_metrics.json"
 

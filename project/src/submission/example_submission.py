@@ -1,7 +1,7 @@
 """
 Example hackathon submission: defines get_guardrails() for evaluation.
 
-Lives next to the benchmark runner so it stays with the evaluation code.
+Lives next to the submission runner so it stays with the evaluation code.
 Participants copy and adapt this file (and can add their own models).
 
 Contract: get_guardrails() takes no arguments and returns (input_guardrail, output_guardrail).
@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Optional, Tuple
 
 # Ensure project root is on path when loaded by the hackathon runner or run standalone
-# (this file lives in src/benchmark/, so project root = parents[2])
+# (this file lives in src/submission/, so project root = parents[2])
 _THIS_DIR = Path(__file__).resolve().parent
 _PROJECT_ROOT = _THIS_DIR.parents[2]
 if str(_PROJECT_ROOT) not in sys.path:
@@ -103,12 +103,10 @@ def get_guardrails() -> Tuple[Optional[Any], Optional[Any]]:
     input_guardrail = None
     output_guardrail = None
 
-    # Example: single input guardrail + stacked output guardrails
-    # Stacks run in order; first failure blocks the pipeline.
+    # Example: single input guardrail; output guardrail is None (input-only focus)
     if _GUARDRAILS_AVAILABLE:
         guardrail_llm = _get_guardrail_llm()
         if guardrail_llm is not None:
-            # Single input guardrail
             input_guardrail = LLMJudgeGuardrail(
                 config=GuardrailConfig(
                     name="input_gr",
@@ -118,26 +116,7 @@ def get_guardrails() -> Tuple[Optional[Any], Optional[Any]]:
                 ),
                 llm_provider=guardrail_llm,
             )
-            # Stacked output guardrails: return a list/tuple; run in order, first failure blocks
-            output_gr_1 = LLMJudgeGuardrail(
-                config=GuardrailConfig(
-                    name="output_safety",
-                    description="Output safety check",
-                    threshold=0.5,
-                    fail_open=False,
-                ),
-                llm_provider=guardrail_llm,
-            )
-            output_gr_2 = LLMJudgeGuardrail(
-                config=GuardrailConfig(
-                    name="output_policy",
-                    description="Policy compliance check",
-                    threshold=0.5,
-                    fail_open=False,
-                ),
-                llm_provider=guardrail_llm,
-            )
-            output_guardrail = [output_gr_1, output_gr_2]
+            output_guardrail = None
 
     # Example: stacked input guardrails (uncomment and define input_gr_1, input_gr_2)
     # input_gr_1 = LLMJudgeGuardrail(config=GuardrailConfig(...), llm_provider=guardrail_llm)

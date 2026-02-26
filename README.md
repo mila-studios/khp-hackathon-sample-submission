@@ -4,12 +4,170 @@ Welcome to the Mental Health Safety Sandbox Hackathon. This repository contains 
 
 ---
 
+## Background
+
+The goal of this hackathon is to **build strong guardrails** for a safety-critical chatbot.
+
+We provide a **KHP (Kids Help Phone) chat virtual assistant** that **triages users based on the conversation**. The virtual assistant is a **navigation and triage tool** for a crisis support service for children and teenagers: it is **not** a counsellor or therapist. It is designed to:
+
+- Understand the user's intent and assess urgency/safety
+- Route users to appropriate human or external support
+- Explain available services and next steps
+- Avoid providing emotional validation, therapy, or crisis intervention itself—and instead redirect to human care
+
+The virtual assistant handles different situations (crisis/high-risk, emotional support requests, navigation/information, unclear messages) and must stay within strict boundaries (calm, clear, non-therapeutic, transparent about limitations).
+
+**Participants can access this pipeline and do adversarial testing** to find failure modes. Use the **provided notebook** to run the chatbot and try prompts that might expose unsafe or off-role behavior:
+
+- **[project/notebooks/chat_pipeline_demo.ipynb](project/notebooks/chat_pipeline_demo.ipynb)**. Use it to explore triage behavior and run adversarial tests.
+
+**How to access the chat pipeline demo**
+
+1. Install dependencies and set up the kernel (see [Installation](#installation) below).
+2. Open `project/notebooks/chat_pipeline_demo.ipynb` and select the **"Python (aiss)"** kernel.
+3. Run the setup cells, then run the pipeline with your own prompts.
+
+---
+
+## Hackathon task
+
+The goal for participants is to **enhance the safety of the chatbot by building a guardrail system**. We are specifically interested in improving the **input guardrail**: it sees the **user query with context history** and **classifies** it (e.g. safe vs unsafe). Participants should build an input guardrail that **improves the failure modes** of the KHP chat pipeline—e.g. blocking or redirecting harmful, off-role, or policy-violating inputs before they reach the KHP virtual assistant.
+
+**Test your guardrails** using the pipeline test notebook:
+
+- **[project/notebooks/input_guardrail_test.ipynb](project/notebooks/input_guardrail_test.ipynb)** — Full pipeline with input guardrails. Use it to plug in your guardrail via `get_guardrails()` and verify that it blocks or allows the right prompts.
+
+**How to use the chat pipeline test notebook to test guardrails**
+
+1. Implement your guardrail and expose it via `get_guardrails()` in a submission module (e.g. `project/src/submission/example_submission_llm_judge.py` or `example_submission_ditillbert_guardrail.py`). See [Submission contract](#submission-contract) and [project/src/guardrails/README.md](project/src/guardrails/README.md) for the guardrail API.
+2. Open `project/notebooks/input_guardrail_test.ipynb` and select the **"Python (aiss)"** kernel, with working directory `project/`.
+3. In the notebook, set `USE_GUARDRAILS = True` and point the import to your submission module (e.g. `example_submission_llm_judge` or your own). Run the cell that calls `get_guardrails()`.
+4. Build the pipeline with the returned input guardrail (output is None) and run test prompts (including adversarial ones). Check `result.status`, `result.blocked_at`, and `result.response` to confirm your guardrail behaves as intended.
+
+---
+
+## Submission contract
+
+Your submission is a **single Python module** in `project/src/submission/` that defines:
+
+```python
+def get_guardrails() -> tuple[input_guardrail, output_guardrail]:
+    """Return (input_guardrail, output_guardrail). Either may be None."""
+    ...
+```
+
+- **No arguments** are passed to `get_guardrails()`.
+- The evaluator uses a fixed main LLM and system prompt; you only return guardrails.
+- For this hackathon, return your **input** guardrail and **`None`** for output.
+- Each return value may be `None`, a **single** guardrail, or a **list/tuple** (stack). Stacks run in order and short-circuit on first failure.
+- You may use your own LLM (env vars), classifier/BERT (model path), or any guardrail that implements the guardrail protocol (see [project/src/guardrails/README.md](project/src/guardrails/README.md)).
+
+---
+
+## Submission folder
+
+| File | Purpose |
+|------|---------|
+| **`example_submission.py`** | Generic template; defines `get_guardrails()` and helpers. |
+| **`example_submission_llm_judge.py`** | Example using an LLM judge guardrail. |
+| **`example_submission_ditillbert_guardrail.py`** | Example using a DistilBERT-style classifier guardrail. |
+| **`hackathon_runner.py`** | Evaluator: loads your module, runs benchmark and metrics. |
+
+Copy an example, rename it (e.g. `my_submission.py`), and implement `get_guardrails()`.
+
+---
+
+## Using your own models
+
+- **LLM for guardrails:** In the examples, the guardrail LLM is configured via env (e.g. `OPENAI_API_KEY`, `OPENAI_MODEL`). Replace or extend with your API, model, or custom provider.
+- **Classifier / BERT:** Use a path to your trained model. Place model files in a folder (e.g. `project/models/`) so the path works when the runner loads your module.
+- **Custom guardrail:** Implement `evaluate(content, context=None, evaluation_type=...) -> GuardrailResult` and return it from `get_guardrails()`. See [project/src/guardrails/README.md](project/src/guardrails/README.md) for the protocol.
+
+---
+
+## Run locally / evaluation
+
+**Test your submission locally** (from the `project/` directory):
+
+```bash
+cd project
+PYTHONPATH=. python src/submission/example_submission_llm_judge.py
+```
+
+Or with your own module:
+
+```bash
+PYTHONPATH=. python src/submission/my_submission.py
+```
+
+**Run evaluation** (organizers or self-serve):
+
+```bash
+cd project
+PYTHONPATH=. python -m src.submission.hackathon_runner \
+  --submission src/submission/example_submission.py \
+  --benchmark-csv path/to/benchmark.csv \
+  --config path/to/config.yaml \
+  --output-dir results/hackathon
+```
+
+Set `--submission` to your module path. The runner adds the submission's directory to `sys.path`, so models can live next to the submission and be loaded by path.
+
+**Run the submission scripts (configure, predict, eval_metrics)**
+
+Use these scripts to set up your environment, generate predictions with your guardrail, and compute evaluation metrics. Run them in order: **configure → predict → eval_metrics**. All commands below are from the **repository root**.
+
+1. **configure** — Install dependencies and materialize any models or assets your guardrail needs.
+
+   ```bash
+   ./project/scripts/configure.sh
+   ```
+
+   This creates/uses a virtualenv, installs from `pyproject.toml` (or `requirements.txt`), and ensures `ipykernel` is available.
+
+2. **predict** — Run your submission’s input guardrail on a labeled CSV and write a predictions CSV.
+
+   ```bash
+   ./project/scripts/predict.sh <path_to_input_file.csv> <path_to_predictions_output_file.csv>
+   ```
+
+   Example (using the sample guardrail data):
+
+   ```bash
+   ./project/scripts/predict.sh datasets/sample_guardrail_data.csv results/predictions.csv
+   ```
+
+3. **eval_metrics** — Compute precision, recall, F1, and latency from the predictions CSV and write metrics.
+
+   ```bash
+   ./project/scripts/eval.sh <path_to_predictions.csv> <path_to_eval_metrics.csv>
+   ```
+
+   Example:
+
+   ```bash
+   ./project/scripts/eval.sh results/predictions.csv results/eval_metrics.csv
+   ```
+
+   This produces `eval_metrics.csv` and `eval_metrics.json` in the output directory.
+
+**Full workflow example** (from repo root, with venv activated):
+
+```bash
+source .venv/bin/activate
+./project/scripts/configure.sh
+./project/scripts/predict.sh datasets/sample_guardrail_data.csv results/predictions.csv
+./project/scripts/eval.sh results/predictions.csv results/eval_metrics.csv
+```
+
+---
+
 ## Quick start
 
 1. **Install dependencies** (see [Installation](#installation) below).
 2. **Run the demo pipeline** from the `project/` directory to verify your setup.
 3. **Build your guardrails** using the [Guardrails framework](project/src/guardrails/README.md) (LLM judge, classifier, or custom).
-4. **Submit** by implementing `get_guardrails()` as described in [Benchmark & submission](project/src/benchmark/PARTICIPANT_README.md).
+4. **Submit** by implementing `get_guardrails()` as described in [Submission contract](#submission-contract) below.
 
 ---
 
@@ -20,8 +178,8 @@ Welcome to the Mental Health Safety Sandbox Hackathon. This repository contains 
 | **`project/`** | Main code: chat pipeline, guardrails, providers, notebooks. **Do your development here.** |
 | **`project/README.md`** | Setup and run instructions for the project. |
 | **`project/src/guardrails/`** | Guardrail framework and built-in implementations (LLM judge, classifier). |
-| **`project/src/benchmark/`** | Submission contract, example submissions, and evaluation runner. |
-| **`project/notebooks/`** | Example notebook for testing the chat pipeline. |
+| **`project/src/submission/`** | Submission contract, example submissions, and evaluation runner. |
+| **`project/notebooks/`** | **chat_pipeline_demo.ipynb** — main LLM only (adversarial testing). **input_guardrail_test.ipynb** — pipeline with input guardrail. |
 | **`project/providers/`** | LLM providers (OpenAI, Cohere, demo). |
 | **`datasets/`** | Datasets and data sources (if provided). |
 | **`docs/`** | Additional docs (presentations, guides). |
@@ -32,22 +190,15 @@ Welcome to the Mental Health Safety Sandbox Hackathon. This repository contains 
 
 **Requirements:** Python 3.12 or later. We recommend [uv](https://docs.astral.sh/uv/) for fast, reproducible installs.
 
-### 1. Install uv (optional but recommended)
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Or with pip: `pip install uv`.
-
-### 2. Clone the repository
+### 1. Clone the repository
 
 ```bash
 git clone <repository-url>
 cd Mental-Health-Safety-Sandbox-Hackathon-
 ```
 
-### 3. Create environment and install
+### 2. Create environment and install
 
 From the **repository root** (where `pyproject.toml` is):
 
@@ -79,7 +230,7 @@ print(p.process('Hello').response)
 "
 ```
 
-You can also open `project/notebooks/chat_pipeline_test.ipynb`, set the kernel working directory to `project/`, and run the cells.
+You can also open `project/notebooks/input_guardrail_test.ipynb`, set the kernel working directory to `project/`, and run the cells.
 
 ### 5. Environment variables (optional)
 
@@ -92,21 +243,46 @@ Use a `.env` file in the repository root if you like; `python-dotenv` is already
 
 ## Hackathon submission checklist
 
-Use this structure when preparing your submission and pitch.
+Use this checklist when preparing your submission. You are responsible for ensuring your setup works before submitting.
 
-### 1. Problem statement
+### 1. One-pager
+
+Submit a **one-pager** that describes:
+
+- How you tackle the problem
+- How your solution works and how it improves the system
+- **Results on the validation set provided** (report these in the one-pager)
+
+### 2. Guardrail implementation: `get_guardrails()`
+
+Implement **`get_guardrails()`** in a module in **`project/src/submission/`**. Return your input guardrail and `None` for output (see [Submission contract](#submission-contract)).
+
+- Use the example submissions as a guide: [example_submission_llm_judge.py](project/src/submission/example_submission_llm_judge.py) (LLM judge), [example_submission_ditillbert_guardrail.py](project/src/submission/example_submission_ditillbert_guardrail.py) (finetuned model).
+- Base classes are provided; see [project/src/guardrails/README.md](project/src/guardrails/README.md).
+
+### 3. Scripts (configure, predict, eval)
+
+Update **`project/scripts/configure.sh`**, **`project/scripts/predict.sh`**, and **`project/scripts/eval.sh`** so they run for your submission:
+
+- **configure.sh** — Install dependencies and materialize any models or assets your guardrail needs.
+- **predict.sh** — Reads an input CSV and writes predictions using your guardrail (via `get_guardrails()`). Set `SUBMISSION_MODULE` or edit the default to point to your submission module.
+- **eval.sh** — Evaluates your predictions CSV and writes metrics (e.g. precision, recall, F1).
+
+Run configure → predict → eval locally before submitting.
+
+### 4. Problem statement
 
 A short description of the mental-health or safety issue your solution addresses.
 
-### 2. Objective
+### 5. Objective
 
 The challenge or need your solution contributes to solving.
 
-### 3. Solution / data use case
+### 6. Solution / data use case
 
 A clear description of your data-based solution and how you use data (and guardrails) in the pipeline.
 
-### 4. Pitch
+### 7. Pitch
 
 A pitch of **maximum 5 minutes**.  
 Recommended: add a link here (e.g. YouTube recording).
@@ -115,7 +291,7 @@ Recommended: add a link here (e.g. YouTube recording).
 
 **GitHub limits:** 100MB per file, 10GB per repository.
 
-### 5. Demo
+### 8. Demo
 
 A functional or conceptual demo showing how your solution works, e.g.:
 
@@ -123,7 +299,7 @@ A functional or conceptual demo showing how your solution works, e.g.:
 - Walkthrough of the pipeline or model results  
 - Mock user journey (for early-stage concepts)
 
-### 6. Datasets
+### 9. Datasets
 
 **Location:** `/datasets`
 
@@ -133,7 +309,7 @@ Include:
 - Notes on data quality and any transformations  
 - Any new data you generated (e.g. by merging datasets)
 
-### 7. Project code
+### 10. Project code
 
 **Location:** `/project`
 
@@ -143,15 +319,15 @@ Your code should cover:
 - Model-related code (e.g. classifiers, guardrails)  
 - Any user interface or demo scripts
 
-### 8. Additional docs (optional)
+### 11. Additional docs (optional)
 
 **Location:** `/docs`
 
 - Slides, flyers, extra videos, protocols, or guides
 
-### 9. Terms and conditions
+### 12. Terms and conditions
 
-By submitting to the Mental Health Safety Sandbox Hackathon, you acknowledge and agree to the event’s [Terms and Conditions](link to the T&C).
+By submitting to the Mental Health Safety Sandbox Hackathon, you acknowledge and agree to the event's [Terms and Conditions](link to the T&C).
 
 ---
 
@@ -159,4 +335,4 @@ By submitting to the Mental Health Safety Sandbox Hackathon, you acknowledge and
 
 - **Set up and run:** [project/README.md](project/README.md)  
 - **Implement guardrails:** [project/src/guardrails/README.md](project/src/guardrails/README.md)  
-- **Benchmark and submit:** [project/src/benchmark/PARTICIPANT_README.md](project/src/benchmark/PARTICIPANT_README.md)
+- **Guardrail API (base classes, LLM judge, classifier):** [project/src/guardrails/README.md](project/src/guardrails/README.md)

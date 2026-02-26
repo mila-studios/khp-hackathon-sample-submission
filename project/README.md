@@ -2,19 +2,21 @@
 
 This directory contains the **main hackathon code**: chat pipeline, guardrails, LLM providers, and notebooks. New participants should set up and run from here.
 
+For **background** (KHP chat pipeline, triage, adversarial testing), the **hackathon task**, and the **submission checklist** (one-pager, scripts, `get_guardrails()`), see the [repository root README](../README.md).
+
 ---
 
-## What’s in this directory
+## What's in this directory
 
 | Path | Description |
 |------|-------------|
 | **`src/`** | Core Python packages. |
 | **`src/end_to_end/`** | Chat pipeline: user input → input guardrails → LLM → output guardrails → response. |
 | **`src/guardrails/`** | Guardrail framework and implementations (LLM judge, classifier). See [src/guardrails/README.md](src/guardrails/README.md). |
-| **`src/benchmark/`** | Submission contract and evaluation. See [src/benchmark/PARTICIPANT_README.md](src/benchmark/PARTICIPANT_README.md). |
+| **`src/submission/`** | Submission module and examples; implement `get_guardrails()`. See [repository root README](../README.md#submission-contract). |
 | **`src/prompt_templates/`** | System prompts and guardrail prompts. |
 | **`providers/`** | LLM providers (OpenAI, Cohere, demo). |
-| **`notebooks/`** | Example notebook to test the pipeline (e.g. `chat_pipeline_test.ipynb`). |
+| **`notebooks/`** | **chat_pipeline_demo.ipynb** — main LLM only (adversarial testing). **input_guardrail_test.ipynb** — full pipeline with guardrails. |
 | **`scripts/`** | Training and utility scripts (e.g. classifier guardrail training). |
 
 ---
@@ -58,7 +60,8 @@ print(result.response)
 "
 ```
 
-### Run the test notebook
+
+### Run the notebooks
 
 1. **Register the virtualenv as a Jupyter kernel** (from repo root with the venv activated):
 
@@ -67,9 +70,9 @@ print(result.response)
    python -m ipykernel install --user --name=aiss --display-name="Python (aiss)"
    ```
 
-2. Open `notebooks/chat_pipeline_test.ipynb` and select the **"Python (aiss)"** kernel.
+2. Open **`notebooks/chat_pipeline_demo.ipynb`** (main LLM only) or **`notebooks/input_guardrail_test.ipynb`** (with guardrails) and select the **"Python (aiss)"** kernel.
 
-3. **Set the kernel’s working directory to `project/`** (in VS Code/Cursor: use the kernel picker or “Select Another Kernel” and ensure cwd is `project/`).  
+3. **Set the kernel's working directory to `project/`** (in VS Code/Cursor: use the kernel picker or "Select Another Kernel" and ensure cwd is `project/`).  
    This ensures `from src...` and `from providers...` work.
 
    Alternatively, at the top of the notebook you can run:
@@ -93,4 +96,4 @@ You can put these in a `.env` file in the repository root.
 ## Where to go next
 
 - **Implement or customize guardrails:** [src/guardrails/README.md](src/guardrails/README.md)  
-- **Prepare your hackathon submission:** [src/benchmark/PARTICIPANT_README.md](src/benchmark/PARTICIPANT_README.md)
+- **Submission contract and examples:** [repository root README](../README.md#submission-contract)

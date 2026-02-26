@@ -8,7 +8,7 @@ the same way as the LLM judge guardrail.
 
 Usage:
   # From project/ directory (or repo root with PYTHONPATH=project):
-  python scripts/train_classifier_guardrail.py \\
+  python -m src.guardrails.train_classifier_guardrail \\
     --data path/to/labeled_data.csv \\
     --output_dir models/my_guardrail \\
     [--base_model bert-base-uncased] [--text_column text --label_column label]
@@ -35,7 +35,8 @@ import json
 import sys
 from pathlib import Path
 
-_PROJECT = Path(__file__).resolve().parent.parent
+# Project root = project/ (parent of src/)
+_PROJECT = Path(__file__).resolve().parent.parent.parent
 if str(_PROJECT) not in sys.path:
     sys.path.insert(0, str(_PROJECT))
 

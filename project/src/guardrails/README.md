@@ -8,7 +8,7 @@ This module provides a **flexible guardrail framework** for content safety in th
 
 - Use **LLM judge** and/or **classifier** guardrails, or implement your **own** guardrail that follows the contract below.
 - Plug guardrails into the pipeline via `input_guardrail` and `output_guardrail` (see [Using guardrails in the pipeline](#using-guardrails-in-the-pipeline)).
-- For submission, you return your guardrails from `get_guardrails()` in the benchmark module; see [src/benchmark/PARTICIPANT_README.md](../benchmark/PARTICIPANT_README.md).
+- For submission, you return your guardrails from `get_guardrails()` in a module in `src/submission/`; see the [repository root README](../../../README.md#submission-contract) for the contract and examples.
 
 ---
 
@@ -101,7 +101,7 @@ pipeline = ChatPipeline(main_llm_provider=main_llm, input_guardrail=MyGuardrail(
 | Implementation | Description |
 |----------------|-------------|
 | **LLMJudgeGuardrail** | Uses an LLM as a judge for content evaluation. |
-| **ClassifierGuardrail** | Hugging Face Transformers model (e.g. BERT). Load via **`load_classifier_guardrail()`** with a local path or Hub model id. Train with **`scripts/train_classifier_guardrail.py`** (default: BERT; override with `--base_model`). In YAML use `type: "finetunable"` (or `"bert"`) and `model_path`. |
+| **ClassifierGuardrail** | Hugging Face Transformers model (e.g. BERT). Load via **`load_classifier_guardrail()`** with a local path or Hub model id. Train with **`python -m src.guardrails.train_classifier_guardrail`** (default: BERT; override with `--base_model`). In YAML use `type: "finetunable"` (or `"bert"`) and `model_path`. |
 
 Both implement `BaseGuardrail` and the protocol; they can be mixed in the same stack.
 
@@ -115,6 +115,9 @@ Both implement `BaseGuardrail` and the protocol; they can be mixed in the same s
 | **`llm_judge.py`** | `LLMJudgeGuardrail`. |
 | **`classifier.py`** | `ClassifierGuardrail`, `load_classifier_guardrail`. |
 | **`metrics.py`** | `get_predictions()`, `compute_metrics_from_predictions()`, `GuardrailMetricsResult` — run guardrails for per-sample predictions; compute precision, recall, F1 and latency from predictions. |
+| **`get_predictions.py`** | CLI: `python -m src.guardrails.get_predictions` — run guardrails on a labeled CSV and write prediction CSV. |
+| **`get_guardrail_metrics.py`** | CLI: `python -m src.guardrails.get_guardrail_metrics` — compute precision, recall, F1 and latency from a prediction CSV. |
+| **`train_classifier_guardrail.py`** | CLI: `python -m src.guardrails.train_classifier_guardrail` — train a finetunable classifier guardrail (e.g. BERT, DistilBERT). |
 | **`__init__.py`** | Re-exports for `from src.guardrails import ...`. |
 
 ---
@@ -140,7 +143,7 @@ result = compute_metrics_from_predictions(predictions)
 
 From the command line, use a two-step workflow:
 
-1. **`scripts/get_predictions.py`** — loads guardrails via `get_guardrails()` from a submission module, runs the input guardrail on a labeled CSV, and writes `predictions_input.csv`.
-2. **`scripts/get_guardrail_metrics.py`** — reads that prediction CSV and computes precision, recall, F1 and latency, writing metrics JSON and `metrics.csv`.
+1. **`python -m src.guardrails.get_predictions`** — loads guardrails via `get_guardrails()` from a submission module, runs the input guardrail on a labeled CSV, and writes predictions CSV.
+2. **`python -m src.guardrails.get_guardrail_metrics`** — reads that prediction CSV and computes precision, recall, F1 and latency, writing metrics JSON and `metrics.csv`.
 
-You can also call **`compute_metrics_from_predictions()`** on an existing list of prediction dicts (e.g. loaded from a CSV from `get_predictions.py`); see `metrics.py` for the signature.
+You can also call **`compute_metrics_from_predictions()`** on an existing list of prediction dicts (e.g. loaded from a CSV from `get_predictions`); see `metrics.py` for the signature.

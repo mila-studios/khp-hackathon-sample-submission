@@ -193,7 +193,7 @@ def compute_metrics_from_predictions(
     Compute precision, recall, F1 and optional latency from a list of prediction rows.
 
     Use this when you have already run guardrails and have per-sample predictions
-    (e.g. from get_predictions.py or a previous run). Each row must have the
+    (e.g. from get_predictions or a previous run). Each row must have the
     ground-truth label (harmful or not) and the combined prediction.
 
     Args:

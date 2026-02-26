@@ -3,13 +3,13 @@
 
 Loads guardrails via get_guardrails() from the submission module, runs the
 input guardrail on the data, and writes predictions to CSV. Use
-get_guardrail_metrics.py afterward to compute precision, recall, F1 and
+get_guardrail_metrics afterward to compute precision, recall, F1 and
 latency from that file.
 
 Usage:
-    cd project && PYTHONPATH=. python scripts/get_predictions.py \\
-        --submission src/benchmark/example_submission_llm_judge.py \\
-        --data scripts/distilbert_demo_data.csv \\
+    cd project && PYTHONPATH=. python -m src.guardrails.get_predictions \\
+        --submission src/submission/example_submission_llm_judge.py \\
+        --data ../datasets/distilbert_demo_data.csv \\
         --output-dir results/
 
 Writes:
@@ -26,9 +26,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-# Project root = parent of project/ (where scripts/ lives)
-_SCRIPT_DIR = Path(__file__).resolve().parent
-_PROJECT_ROOT = _SCRIPT_DIR.parent
+# Project root = project/ (parent of src/)
+_THIS_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _THIS_DIR.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
@@ -131,7 +131,7 @@ def main() -> int:
     print(f"Samples: {result['total_samples']}")
     if result.get("input_predictions_path"):
         print(f"Predictions: {result['input_predictions_path']}")
-    print("\nRun get_guardrail_metrics.py with --predictions-dir to compute metrics.")
+    print("\nRun get_guardrail_metrics with --predictions-dir to compute metrics.")
 
     return 0
 

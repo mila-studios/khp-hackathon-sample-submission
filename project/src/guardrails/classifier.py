@@ -28,7 +28,7 @@ def _load_transformers_pipeline(model_path: str, device: str = "cpu"):
 
     Supports:
     - Local directory: path to a model saved with save_pretrained() (e.g. from
-      scripts/train_classifier_guardrail.py). BERT and other HF models are saved
+      src.guardrails.train_classifier_guardrail). BERT and other HF models are saved
       in this format.
     - Hugging Face Hub model id: e.g. "bert-base-uncased", "roberta-base",
       "distilbert-base-uncased", or any model id that has a sequence

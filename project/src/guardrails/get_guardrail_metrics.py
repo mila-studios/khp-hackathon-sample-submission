@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Compute precision, recall, F1 and latency from prediction CSV.
 
-Reads predictions_input.csv produced by get_predictions.py and computes metrics.
+Reads predictions produced by get_predictions and computes metrics.
 Supports single or stacked guardrails (combined_pred = harmful if any
 guardrail said harmful).
 
 Usage:
-    cd project && PYTHONPATH=. python scripts/get_guardrail_metrics.py \\
+    cd project && PYTHONPATH=. python -m src.guardrails.get_guardrail_metrics \\
         --predictions-dir results/ \\
         [--output results/metrics.json]
 
     Or specify file explicitly:
-    python scripts/get_guardrail_metrics.py \\
+    python -m src.guardrails.get_guardrail_metrics \\
         --predictions results/predictions_input.csv \\
         --output results/metrics.json
 
@@ -20,7 +20,7 @@ When --output is set, writes:
   - <output_dir>/metrics.csv (precision, recall, F1, latency)
 
 Prediction CSV format: must have columns label_harmful (or label) and combined_pred;
-optional latency_ms. Use get_predictions.py to generate from a submission.
+optional latency_ms. Use get_predictions to generate from a submission.
 """
 
 from __future__ import annotations
@@ -32,9 +32,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Project root = parent of project/ (where scripts/ lives)
-_SCRIPT_DIR = Path(__file__).resolve().parent
-_PROJECT_ROOT = _SCRIPT_DIR.parent
+# Project root = project/ (parent of src/)
+_THIS_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _THIS_DIR.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
@@ -98,9 +98,9 @@ def run_metrics(
     output_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """
-    Load predictions_input.csv, compute metrics, optionally write JSON and metrics CSV.
+    Load predictions CSV, compute metrics, optionally write JSON and metrics CSV.
 
-    Either pass predictions_dir (uses predictions_input.csv) or predictions_path.
+    Either pass predictions_dir (uses predictions.csv) or predictions_path.
     """
     if predictions_dir is not None:
         predictions_dir = predictions_dir.resolve()
@@ -155,13 +155,13 @@ def run_metrics(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Compute precision, recall, F1 and latency from prediction CSVs (from get_predictions.py)."
+        description="Compute precision, recall, F1 and latency from prediction CSVs (from get_predictions)."
     )
     parser.add_argument(
         "--predictions-dir",
         "-p",
         default=None,
-        help="Directory containing predictions_input.csv.",
+        help="Directory containing predictions.csv.",
     )
     parser.add_argument(
         "--predictions",
