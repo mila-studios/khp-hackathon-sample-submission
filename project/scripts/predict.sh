@@ -45,7 +45,10 @@ PYTHONPATH=. python -m src.guardrails.get_predictions \
 
 # Write to the exact path requested (script writes predictions.csv into output-dir)
 if [[ -f "$OUTPUT_DIR/predictions.csv" ]]; then
-  mv "$OUTPUT_DIR/predictions.csv" "$OUTPUT_CSV"
+  # Skip mv when both paths resolve to the same underlying file.
+  if [[ ! -e "$OUTPUT_CSV" || ! "$OUTPUT_DIR/predictions.csv" -ef "$OUTPUT_CSV" ]]; then
+    mv "$OUTPUT_DIR/predictions.csv" "$OUTPUT_CSV"
+  fi
   echo "Predictions written to $OUTPUT_CSV"
 else
   echo "Predictions file was not produced." >&2
