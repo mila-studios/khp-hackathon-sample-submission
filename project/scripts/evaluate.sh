@@ -41,10 +41,7 @@ PYTHONPATH=. python -m src.guardrails.get_guardrail_metrics \
 
 # Rename metrics.csv to the requested eval_metrics.csv path
 if [[ -f "$OUTPUT_DIR/metrics.csv" ]]; then
-  # Skip mv when both paths resolve to the same underlying file.
-  if [[ ! -e "$EVAL_METRICS_CSV" || ! "$OUTPUT_DIR/metrics.csv" -ef "$EVAL_METRICS_CSV" ]]; then
-    mv "$OUTPUT_DIR/metrics.csv" "$EVAL_METRICS_CSV"
-  fi
+  mv "$OUTPUT_DIR/metrics.csv" "$EVAL_METRICS_CSV"
   echo "Eval metrics written to $EVAL_METRICS_CSV"
 else
   echo "Metrics CSV was not produced." >&2
