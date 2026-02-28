@@ -8,7 +8,7 @@ latency from that file.
 
 Usage:
     cd project && PYTHONPATH=. python -m src.guardrails.get_predictions \\
-        --submission src/submission/example_submission_llm_judge.py \\
+        --submission src/submission/submission.py \\
         --data ../datasets/distilbert_demo_data.csv \\
         --output-dir results/
 

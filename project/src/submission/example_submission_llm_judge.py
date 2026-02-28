@@ -22,6 +22,9 @@ if str(_PROJECT_ROOT) not in sys.path:
 from src.guardrails.base import GuardrailConfig
 from src.guardrails.llm_judge import LLMJudgeGuardrail
 
+OPENAI_GUARDRAIL_MODEL = "gpt-4o-mini"
+COHERE_GUARDRAIL_MODEL = "command-r"
+
 
 def _get_guardrail_llm(provider: str):
     """Choose an LLM provider for LLM Judge guardrails."""
@@ -38,7 +41,7 @@ def _get_guardrail_llm(provider: str):
             if api_key:
                 return OpenAIProvider(
                     api_key=api_key,
-                    model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+                    model=OPENAI_GUARDRAIL_MODEL,
                     temperature=1.0,
                     max_tokens=1000,
                 )
@@ -51,7 +54,7 @@ def _get_guardrail_llm(provider: str):
             if api_key:
                 return CohereProvider(
                     api_key=api_key,
-                    model=os.getenv("COHERE_MODEL", "command-r"),
+                    model=COHERE_GUARDRAIL_MODEL,
                     temperature=0.0,
                     max_tokens=1000,
                 )

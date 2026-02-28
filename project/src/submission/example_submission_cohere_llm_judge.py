@@ -1,6 +1,6 @@
 """Example submission: LLM Judge guardrail using Cohere as the judge LLM.
 
-Requires COHERE_API_KEY (and optionally COHERE_BASE_URL, COHERE_MODEL) in environment.
+Requires COHERE_API_KEY (and optionally COHERE_BASE_URL) in environment.
 Use this when you want the safety judge to run on Cohere instead of OpenAI or demo.
 """
 
@@ -19,9 +19,11 @@ if str(_PROJECT_ROOT) not in sys.path:
 from src.guardrails.base import GuardrailConfig
 from src.guardrails.llm_judge import LLMJudgeGuardrail
 
+COHERE_GUARDRAIL_MODEL = "CohereLabs/c4ai-command-a-03-2025"
+
 
 def _get_cohere_judge_llm():
-    """Build Cohere provider for LLM Judge. Uses COHERE_API_KEY, optional COHERE_BASE_URL and COHERE_MODEL."""
+    """Build Cohere provider for LLM Judge. Uses COHERE_API_KEY and optional COHERE_BASE_URL."""
     try:
         from providers.cohere_provider import CohereProvider
     except ImportError:
@@ -30,10 +32,9 @@ def _get_cohere_judge_llm():
     if not api_key:
         return None
     base_url = os.getenv("COHERE_BASE_URL") or None
-    model = os.getenv("COHERE_MODEL", "CohereLabs/c4ai-command-a-03-2025")
     return CohereProvider(
         base_url=base_url,
-        model=model,
+        model=COHERE_GUARDRAIL_MODEL,
         temperature=0.0,
         max_tokens=1000,
         api_key=api_key,

@@ -10,7 +10,6 @@ can copy this file and update:
 from __future__ import annotations
 
 import sys
-import torch
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
@@ -22,6 +21,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from src.guardrails.classifier import load_classifier_guardrail
+from src.submission._runtime_config import resolve_device_from_hackathon
 
 
 def get_guardrails() -> Tuple[Optional[Any], Optional[Any]]:
@@ -38,12 +38,13 @@ def get_guardrails() -> Tuple[Optional[Any], Optional[Any]]:
         # Keep notebook/runner usable even before training.
         return (None, None)
 
+    device = resolve_device_from_hackathon(_PROJECT_ROOT)
     input_guardrail = load_classifier_guardrail(
         model_path=str(model_path),
         name="input_mmbert_guardrail",
         description="Finetuned mmBERT (jhu-clsp/mmBERT-base) input safety guardrail",
         threshold=0.3,  # block when P(unsafe) >= 0.3; use 0.5 for fewer false positives
-        device="cuda" if torch.cuda.is_available() else "cpu",
+        device=device,
         fail_open=False,
     )
 

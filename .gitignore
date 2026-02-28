@@ -1,0 +1,5 @@
+.venv/
+project/models/
+project/aiss.egg-info/
+__pycache__/
+*.pyc

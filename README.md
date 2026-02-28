@@ -39,9 +39,9 @@ The goal for participants is to **enhance the safety of the chatbot by building 
 
 **How to use the chat pipeline test notebook to test guardrails**
 
-1. Implement your guardrail and expose it via `get_guardrails()` in a submission module (e.g. `project/src/submission/example_submission_llm_judge.py` or `example_submission_ditillbert_guardrail.py`). See [Submission contract](#submission-contract) and [project/src/guardrails/README.md](project/src/guardrails/README.md) for the guardrail API.
+1. Implement your guardrail and expose it via `get_guardrails()` in `project/src/submission/submission.py`. Use the example modules as references. See [Submission contract](#submission-contract) and [project/src/guardrails/README.md](project/src/guardrails/README.md) for the guardrail API.
 2. Open `project/notebooks/input_guardrail_test.ipynb` and select the **"Python (aiss)"** kernel, with working directory `project/`.
-3. In the notebook, set `USE_GUARDRAILS = True` and point the import to your submission module (e.g. `example_submission_llm_judge` or your own). Run the cell that calls `get_guardrails()`.
+3. In the notebook, set `USE_GUARDRAILS = True` and point the import to `submission` (or your test module). Run the cell that calls `get_guardrails()`.
 4. Build the pipeline with the returned input guardrail (output is None) and run test prompts (including adversarial ones). Check `result.status`, `result.blocked_at`, and `result.response` to confirm your guardrail behaves as intended.
 
 ---
@@ -73,13 +73,13 @@ def get_guardrails() -> tuple[input_guardrail, output_guardrail]:
 | **`example_submission_ditillbert_guardrail.py`** | Example using a DistilBERT-style classifier guardrail. |
 | **`hackathon_runner.py`** | Evaluator: loads your module, runs benchmark and metrics. |
 
-Copy an example, rename it (e.g. `my_submission.py`), and implement `get_guardrails()`.
+Use `submission.py` as the canonical module loaded by shared scripts, and copy logic from examples into it.
 
 ---
 
 ## Using your own models
 
-- **LLM for guardrails:** In the examples, the guardrail LLM is configured via env (e.g. `OPENAI_API_KEY`, `OPENAI_MODEL`). Replace or extend with your API, model, or custom provider.
+- **LLM for guardrails:** In the examples, environment variables are used only for API keys and provider base URLs (e.g. `OPENAI_API_KEY`, `COHERE_API_KEY`, `COHERE_BASE_URL`). Replace or extend with your API, model, or custom provider.
 - **Classifier / BERT:** Use a path to your trained model. Place model files in a folder (e.g. `project/models/`) so the path works when the runner loads your module.
 - **Custom guardrail:** Implement `evaluate(content, context=None, evaluation_type=...) -> GuardrailResult` and return it from `get_guardrails()`. See [project/src/guardrails/README.md](project/src/guardrails/README.md) for the protocol.
 
@@ -91,13 +91,7 @@ Copy an example, rename it (e.g. `my_submission.py`), and implement `get_guardra
 
 ```bash
 cd project
-PYTHONPATH=. python src/submission/example_submission_llm_judge.py
-```
-
-Or with your own module:
-
-```bash
-PYTHONPATH=. python src/submission/my_submission.py
+PYTHONPATH=. python src/submission/submission.py
 ```
 
 **Run evaluation** (organizers or self-serve):
@@ -105,13 +99,13 @@ PYTHONPATH=. python src/submission/my_submission.py
 ```bash
 cd project
 PYTHONPATH=. python -m src.submission.hackathon_runner \
-  --submission src/submission/example_submission.py \
+  --submission src/submission/submission.py \
   --benchmark-csv path/to/benchmark.csv \
   --config path/to/config.yaml \
   --output-dir results/hackathon
 ```
 
-Set `--submission` to your module path. The runner adds the submission's directory to `sys.path`, so models can live next to the submission and be loaded by path.
+Use `src/submission/submission.py` as your canonical submission module path. The runner adds the submission's directory to `sys.path`, so models can live next to the submission and be loaded by path.
 
 **Run the submission scripts (configure, predict, eval_metrics)**
 
@@ -235,7 +229,7 @@ You can also open `project/notebooks/input_guardrail_test.ipynb`, set the kernel
 ### 5. Environment variables (optional)
 
 - **OpenAI:** set `OPENAI_API_KEY`.
-- **Cohere:** set `COHERE_BASE_URL` (and optionally `COHERE_SYSTEM_PROMPT`).
+- **Cohere:** set `COHERE_BASE_URL` and `COHERE_API_KEY`.
 
 Use a `.env` file in the repository root if you like; `python-dotenv` is already a dependency.
 
@@ -255,20 +249,53 @@ Submit a **one-pager** that describes:
 
 ### 2. Guardrail implementation: `get_guardrails()`
 
-Implement **`get_guardrails()`** in a module in **`project/src/submission/`**. Return your input guardrail and `None` for output (see [Submission contract](#submission-contract)).
+Implement **`get_guardrails()`** in **`project/src/submission/submission.py`**. Return your input guardrail and `None` for output (see [Submission contract](#submission-contract)).
 
-- Use the example submissions as a guide: [example_submission_llm_judge.py](project/src/submission/example_submission_llm_judge.py) (LLM judge), [example_submission_ditillbert_guardrail.py](project/src/submission/example_submission_ditillbert_guardrail.py) (finetuned model).
+- Use the example submissions as references and copy the logic you need into `submission.py`: [example_submission_llm_judge.py](project/src/submission/example_submission_llm_judge.py) (LLM judge), [example_submission_ditillbert_guardrail.py](project/src/submission/example_submission_ditillbert_guardrail.py) (finetuned model).
 - Base classes are provided; see [project/src/guardrails/README.md](project/src/guardrails/README.md).
 
 ### 3. Scripts (configure, predict, eval)
 
-Update **`project/scripts/configure.sh`**, **`project/scripts/predict.sh`**, and **`project/scripts/eval.sh`** so they run for your submission:
+Do not modify **`project/scripts/configure.sh`**, **`project/scripts/predict.sh`**, or **`project/scripts/eval.sh`**.
+These scripts are shared runner entry points for local testing and evaluator execution.
 
-- **configure.sh** — Install dependencies and materialize any models or assets your guardrail needs.
-- **predict.sh** — Reads an input CSV and writes predictions using your guardrail (via `get_guardrails()`). Set `SUBMISSION_MODULE` or edit the default to point to your submission module.
+- **configure.sh** — Installs dependencies, reads **`hackathon.json`**, checks GPU policy, and fetches any declared artifacts.
+- **predict.sh** — Reads an input CSV and writes predictions using your guardrail (via `get_guardrails()`) from `src/submission/submission.py`.
 - **eval.sh** — Evaluates your predictions CSV and writes metrics (e.g. precision, recall, F1).
 
-Run configure → predict → eval locally before submitting.
+Configure your runtime in **`hackathon.json`**:
+- `needs_gpu` (**required**, boolean): set `true` only if your runtime requires CUDA/GPU.
+- `artifacts` (**required**, list): external files to fetch during `configure.sh`.
+
+Each item in `artifacts` supports:
+- `uri` (**required**, string): `s3://...` or `https://...`
+- `destination` (**required**, string): path under this repo where the file/extracted content should be written
+- `sha256` (optional, string): checksum of the downloaded artifact; if provided, it is verified
+- `required` (optional, boolean, default `true`): if `false`, configure continues when download/check fails
+
+Example:
+
+```json
+{
+  "needs_gpu": false,
+  "artifacts": [
+    {
+      "uri": "s3://khp-tests/hackathon/tests/hackathon_s3_test.txt",
+      "destination": "project/models/_s3_test/hackathon_s3_test.txt",
+      "sha256": "cb2c64dec5e85a69592ee229c8a8ad10294ba1c4493457bd53e2486c18090564",
+      "required": false
+    }
+  ]
+}
+```
+
+`hackathon.json` is required for runtime execution and is validated strictly.
+- Missing file or invalid JSON/field types causes `configure.sh` to fail.
+- Classifier submission templates also fail fast if `hackathon.json` is missing/invalid.
+
+Optional helper: **`project/scripts/publish_artifact.sh`** packages/uploads local artifacts to S3 and prints a ready-to-paste JSON snippet.
+
+Run configure -> predict -> eval locally before submitting.
 
 ### 4. Problem statement
 

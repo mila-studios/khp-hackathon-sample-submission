@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -108,6 +109,29 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    hackathon_path = _PROJECT.parent / "hackathon.json"
+    if not hackathon_path.exists():
+        print(f"Required config not found: {hackathon_path}", file=sys.stderr)
+        return 1
+    try:
+        cfg = json.loads(hackathon_path.read_text())
+    except Exception as exc:
+        print(f"Invalid JSON in {hackathon_path}: {exc}", file=sys.stderr)
+        return 1
+    if not isinstance(cfg, dict):
+        print(f"{hackathon_path} must contain a JSON object", file=sys.stderr)
+        return 1
+    if "needs_gpu" not in cfg:
+        print(f"{hackathon_path} missing required field: needs_gpu", file=sys.stderr)
+        return 1
+    if not isinstance(cfg["needs_gpu"], bool):
+        print(f"{hackathon_path} field 'needs_gpu' must be a boolean", file=sys.stderr)
+        return 1
+    needs_gpu = cfg["needs_gpu"]
+    # Force CPU for local runs when project config says GPU is not required.
+    if not needs_gpu:
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
     try:
         import torch
         import numpy as np
@@ -128,6 +152,10 @@ def main() -> int:
     except ImportError:
         print("This script requires pandas for CSV loading.", file=sys.stderr)
         print("Install with: pip install pandas", file=sys.stderr)
+        return 1
+
+    if needs_gpu and not torch.cuda.is_available():
+        print("hackathon.json requires GPU (needs_gpu=true), but CUDA is not available.", file=sys.stderr)
         return 1
 
     path = Path(args.data)

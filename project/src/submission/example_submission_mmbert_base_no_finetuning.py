@@ -11,7 +11,6 @@ Contract: get_guardrails() -> (input_guardrail, output_guardrail).
 from __future__ import annotations
 
 import sys
-import torch
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
@@ -21,6 +20,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from src.guardrails.classifier import load_classifier_guardrail
+from src.submission._runtime_config import resolve_device_from_hackathon
 
 
 # Hugging Face Hub model id — no local finetuned checkpoint
@@ -29,12 +29,13 @@ BASE_MODEL_ID = "jhu-clsp/mmBERT-base"
 
 def get_guardrails() -> Tuple[Optional[Any], Optional[Any]]:
     """Return (input_guardrail, output_guardrail). Uses base model from Hub, no finetuning."""
+    device = resolve_device_from_hackathon(_PROJECT_ROOT)
     input_guardrail = load_classifier_guardrail(
         model_path=BASE_MODEL_ID,
         name="input_mmbert_base_no_finetuning",
         description="mmBERT-base (jhu-clsp/mmBERT-base) from Hub, no finetuning",
         threshold=0.5,
-        device="cuda" if torch.cuda.is_available() else "cpu",
+        device=device,
         fail_open=False,
     )
     output_guardrail = None

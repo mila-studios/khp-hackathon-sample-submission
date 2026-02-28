@@ -3,7 +3,7 @@
 # Usage: scripts/predict.sh <path_to_input_file.csv> <path_to_predictions_output_file.csv>
 #
 # Reads the input CSV and writes predictions to the output CSV using this team's
-# guardrail (src.guardrails.get_predictions). Override submission via SUBMISSION_MODULE env var.
+# guardrail (src.guardrails.get_predictions).
 
 set -euo pipefail
 
@@ -25,8 +25,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 [[ "$INPUT_CSV" != /* ]] && INPUT_CSV="$INVOKED_DIR/$INPUT_CSV"
 [[ "$OUTPUT_CSV" != /* ]] && OUTPUT_CSV="$INVOKED_DIR/$OUTPUT_CSV"
 
-# Submission module (each team sets this or edits the default)
-SUBMISSION_MODULE="${SUBMISSION_MODULE:-src/submission/example_submission_llm_judge.py}"
+# Fixed user-owned submission module path for deterministic local/evaluator behavior.
+SUBMISSION_MODULE="src/submission/submission.py"
 
 if [[ ! -f "$INPUT_CSV" ]]; then
   echo "Input CSV not found: $INPUT_CSV" >&2
@@ -45,7 +45,9 @@ PYTHONPATH=. python -m src.guardrails.get_predictions \
 
 # Write to the exact path requested (script writes predictions.csv into output-dir)
 if [[ -f "$OUTPUT_DIR/predictions.csv" ]]; then
-  mv "$OUTPUT_DIR/predictions.csv" "$OUTPUT_CSV" 2>/dev/null || true
+  if [[ "$OUTPUT_DIR/predictions.csv" != "$OUTPUT_CSV" ]]; then
+    mv "$OUTPUT_DIR/predictions.csv" "$OUTPUT_CSV"
+  fi
   echo "Predictions written to $OUTPUT_CSV"
 else
   echo "Predictions file was not produced." >&2

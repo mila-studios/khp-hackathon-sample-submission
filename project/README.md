@@ -87,7 +87,7 @@ print(result.response)
 ## Environment variables
 
 - **OpenAI:** `OPENAI_API_KEY`
-- **Cohere:** `COHERE_BASE_URL` (and optionally `COHERE_SYSTEM_PROMPT`)
+- **Cohere:** `COHERE_BASE_URL`, `COHERE_API_KEY`
 
 You can put these in a `.env` file in the repository root.
 

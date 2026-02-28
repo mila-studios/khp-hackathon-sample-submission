@@ -40,6 +40,8 @@ def _load_classifier_fn():
         return None
 _CLASSIFIER_AVAILABLE = _load_classifier_fn() is not None
 
+OPENAI_GUARDRAIL_MODEL = "gpt-4o-mini"
+
 
 def _get_guardrail_llm():
     """
@@ -57,7 +59,7 @@ def _get_guardrail_llm():
         if api_key:
             return OpenAIProvider(
                 api_key=api_key,
-                model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+                model=OPENAI_GUARDRAIL_MODEL,
                 temperature=0.0,
                 max_tokens=1000,
             )
