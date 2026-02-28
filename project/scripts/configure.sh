@@ -8,6 +8,7 @@ cd "$REPO_ROOT"
 
 VENV_DIR=".venv"
 HACKATHON_JSON="$REPO_ROOT/hackathon.json"
+USE_SYSTEM_SITE_PACKAGES="${USE_SYSTEM_SITE_PACKAGES:-0}"
 
 echo "== configure =="
 
@@ -17,7 +18,19 @@ echo "== configure =="
 
 if [[ ! -d "$VENV_DIR" ]]; then
   echo "Creating virtualenv at $VENV_DIR"
-  python3 -m venv "$VENV_DIR"
+  USE_SYSTEM_SITE_PACKAGES_NORM="$(printf '%s' "$USE_SYSTEM_SITE_PACKAGES" | tr '[:upper:]' '[:lower:]')"
+  case "$USE_SYSTEM_SITE_PACKAGES_NORM" in
+    1|true|yes)
+      python3 -m venv "$VENV_DIR" --system-site-packages
+      ;;
+    0|false|no|"")
+      python3 -m venv "$VENV_DIR"
+      ;;
+    *)
+      echo "ERROR: USE_SYSTEM_SITE_PACKAGES must be one of: 1,true,yes,0,false,no (got: $USE_SYSTEM_SITE_PACKAGES)" >&2
+      exit 1
+      ;;
+  esac
 fi
 PY="$VENV_DIR/bin/python"
 "$PY" -m pip install -U pip >/dev/null

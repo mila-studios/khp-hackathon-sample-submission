@@ -117,7 +117,8 @@ Use these scripts to set up your environment, generate predictions with your gua
    ./project/scripts/configure.sh
    ```
 
-   This creates/uses a virtualenv, installs from `pyproject.toml` (or `requirements.txt`), and ensures `ipykernel` is available.
+   This creates/uses a virtualenv, installs from `pyproject.toml` (or `requirements.txt`), and ensures `ipykernel` is available.  
+   For evaluator images with preinstalled packages, you can enable system package reuse with: `USE_SYSTEM_SITE_PACKAGES=1 ./project/scripts/configure.sh`.
 
 2. **predict** — Run your submission’s input guardrail on a labeled CSV and write a predictions CSV.
 
