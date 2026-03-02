@@ -91,21 +91,29 @@ def sha256sum(path: Path) -> str:
 
 repo_root = Path(os.environ["REPO_ROOT"]).resolve()
 hackathon_json = Path(os.environ["HACKATHON_JSON"]).resolve()
-cfg = json.loads(hackathon_json.read_text())
+print(f"[configure] Reading config file: {hackathon_json}", file=sys.stderr)
+raw_json = hackathon_json.read_text()
+print(f"[configure] hackathon.json size: {len(raw_json)} bytes", file=sys.stderr)
+cfg = json.loads(raw_json)
+print("[configure] Decoded hackathon.json content:", file=sys.stderr)
+print(json.dumps(cfg, indent=2, sort_keys=True), file=sys.stderr)
 if not isinstance(cfg, dict):
     raise RuntimeError("hackathon.json must be a JSON object")
+print(f"[configure] Top-level config keys: {sorted(cfg.keys())}", file=sys.stderr)
 
 if "needs_gpu" not in cfg:
     raise RuntimeError("hackathon.json missing required field: needs_gpu")
 if not isinstance(cfg["needs_gpu"], bool):
     raise RuntimeError("hackathon.json field 'needs_gpu' must be a boolean")
 needs_gpu = cfg["needs_gpu"]
+print(f"[configure] needs_gpu={needs_gpu}", file=sys.stderr)
 
 if "artifacts" not in cfg:
     raise RuntimeError("hackathon.json missing required field: artifacts")
 artifacts = cfg["artifacts"]
 if not isinstance(artifacts, list):
     raise RuntimeError("hackathon.json field 'artifacts' must be a list")
+print(f"[configure] artifacts count={len(artifacts)}", file=sys.stderr)
 
 for idx, artifact in enumerate(artifacts):
     if not isinstance(artifact, dict):
@@ -124,6 +132,14 @@ for idx, artifact in enumerate(artifacts):
         raise RuntimeError(f"Artifact #{idx} missing required string field: uri")
     if not isinstance(destination, str) or not destination.strip():
         raise RuntimeError(f"Artifact #{idx} missing required string field: destination")
+    print(
+        (
+            f"[configure] Artifact #{idx} decoded: "
+            f"uri={uri}, destination={destination}, required={required}, "
+            f"sha256={'present' if bool(expected_sha256) else 'missing'}"
+        ),
+        file=sys.stderr,
+    )
 
     dest_path = Path(destination)
     if not dest_path.is_absolute():
