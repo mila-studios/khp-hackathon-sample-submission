@@ -1,8 +1,0 @@
-access_key = PXYXXSPMQB2T9SJ909LR
-secret_key = jC3m1Zo+PMDrhj7Blbs59JuRfiF4ntKZT4LKfyKS
-bucket_name = 'hackathon-test-2256s'
-
-host_base = https://10.2.16.3
-use_https = True
-host_bucket = https://10.2.16.3:%(bucket_name)
-check_ssl_certificate = False1
