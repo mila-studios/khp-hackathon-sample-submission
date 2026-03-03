@@ -58,10 +58,13 @@ fi
 # - artifacts: optional list of downloadable resources
 export REPO_ROOT HACKATHON_JSON
 "$PY" - <<'PY'
+import datetime
 import hashlib
+import hmac
 import json
 import os
 import shutil
+import ssl
 import subprocess
 import sys
 import tarfile
@@ -69,6 +72,63 @@ import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
+
+
+def s3_download(bucket: str, key: str, dest_path: Path) -> None:
+    """Download from S3-compatible storage using signature v4."""
+    endpoint = os.environ.get("S3_ENDPOINT", "")
+    access_key = os.environ.get("S3_ACCESS_KEY", "")
+    secret_key = os.environ.get("S3_SECRET_KEY", "")
+
+    if not all([endpoint, access_key, secret_key]):
+        raise RuntimeError("Missing S3 environment variables: S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY")
+
+    host = endpoint.replace("https://", "").replace("http://", "")
+    region = "us-east-1"
+    service = "s3"
+
+    now = datetime.datetime.utcnow()
+    date_stamp = now.strftime("%Y%m%d")
+    amz_date = now.strftime("%Y%m%dT%H%M%SZ")
+
+    empty_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+    canonical_uri = f"/{bucket}/{key}"
+    canonical_querystring = ""
+    signed_headers = "host;x-amz-content-sha256;x-amz-date"
+
+    canonical_request = f"GET\n{canonical_uri}\n{canonical_querystring}\nhost:{host}\nx-amz-content-sha256:{empty_hash}\nx-amz-date:{amz_date}\n\n{signed_headers}\n{empty_hash}"
+
+    algorithm = "AWS4-HMAC-SHA256"
+    credential_scope = f"{date_stamp}/{region}/{service}/aws4_request"
+    canonical_request_hash = hashlib.sha256(canonical_request.encode()).hexdigest()
+    string_to_sign = f"{algorithm}\n{amz_date}\n{credential_scope}\n{canonical_request_hash}"
+
+    def sign(key: bytes, msg: str) -> bytes:
+        return hmac.new(key, msg.encode(), hashlib.sha256).digest()
+
+    k_date = sign(f"AWS4{secret_key}".encode(), date_stamp)
+    k_region = sign(k_date, region)
+    k_service = sign(k_region, service)
+    k_signing = sign(k_service, "aws4_request")
+    signature = hmac.new(k_signing, string_to_sign.encode(), hashlib.sha256).hexdigest()
+
+    authorization = f"{algorithm} Credential={access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
+
+    url = f"{endpoint}/{bucket}/{key}"
+    req = urllib.request.Request(url, method="GET")
+    req.add_header("Host", host)
+    req.add_header("x-amz-content-sha256", empty_hash)
+    req.add_header("x-amz-date", amz_date)
+    req.add_header("Authorization", authorization)
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    with urllib.request.urlopen(req, context=ctx) as response:
+        with dest_path.open("wb") as f:
+            shutil.copyfileobj(response, f)
 
 
 def safe_extract_tar(archive_path: Path, destination: Path) -> None:
@@ -156,14 +216,10 @@ for idx, artifact in enumerate(artifacts):
         tmp_file = Path(td) / "artifact.bin"
         try:
             if uri.startswith("s3://"):
-                result = subprocess.run(
-                    ["aws", "s3", "cp", uri, str(tmp_file)],
-                    check=False,
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode != 0:
-                    raise RuntimeError(result.stderr.strip() or "aws s3 cp failed")
+                # Parse s3://bucket/key format
+                s3_path = uri[5:]  # Remove "s3://"
+                bucket, key = s3_path.split("/", 1)
+                s3_download(bucket, key, tmp_file)
             elif uri.startswith("http://") or uri.startswith("https://"):
                 with urllib.request.urlopen(uri) as r:
                     if r.status < 200 or r.status >= 300:
