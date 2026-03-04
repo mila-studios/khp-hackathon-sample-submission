@@ -164,8 +164,9 @@ curl -X PUT \
   -H "x-amz-content-sha256: ${SHA256}" \
   -H "x-amz-date: ${AMZ_DATE}" \
   -H "Authorization: ${AUTHORIZATION}" \
-  --data-binary "@${TO_UPLOAD}" \
+  -T "${TO_UPLOAD}" \
   --insecure \
+  --progress-bar \
   "${UPLOAD_URL}"
 
 echo
