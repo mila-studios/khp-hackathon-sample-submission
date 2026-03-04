@@ -58,10 +58,13 @@ fi
 # - artifacts: optional list of downloadable resources
 export REPO_ROOT HACKATHON_JSON
 "$PY" - <<'PY'
+import datetime
 import hashlib
+import hmac
 import json
 import os
 import shutil
+import ssl
 import subprocess
 import sys
 import tarfile
@@ -69,6 +72,79 @@ import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
+
+
+def s3_download(bucket: str, key: str, dest_path: Path) -> None:
+    """Download from S3-compatible storage using signature v4."""
+    endpoint = os.environ.get("S3_ENDPOINT_URL", "")
+    access_key = os.environ.get("S3_ACCESS_KEY", "")
+    secret_key = os.environ.get("S3_SECRET_KEY", "")
+
+    if not all([endpoint, access_key, secret_key]):
+        raise RuntimeError("Missing S3 environment variables: S3_ENDPOINT_URL, S3_ACCESS_KEY, S3_SECRET_KEY")
+
+    host = endpoint.replace("https://", "").replace("http://", "")
+    region = "us-east-1"
+    service = "s3"
+
+    now = datetime.datetime.utcnow()
+    date_stamp = now.strftime("%Y%m%d")
+    amz_date = now.strftime("%Y%m%dT%H%M%SZ")
+
+    empty_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+    canonical_uri = f"/{bucket}/{key}"
+    canonical_querystring = ""
+    signed_headers = "host;x-amz-content-sha256;x-amz-date"
+
+    canonical_request = f"GET\n{canonical_uri}\n{canonical_querystring}\nhost:{host}\nx-amz-content-sha256:{empty_hash}\nx-amz-date:{amz_date}\n\n{signed_headers}\n{empty_hash}"
+
+    algorithm = "AWS4-HMAC-SHA256"
+    credential_scope = f"{date_stamp}/{region}/{service}/aws4_request"
+    canonical_request_hash = hashlib.sha256(canonical_request.encode()).hexdigest()
+    string_to_sign = f"{algorithm}\n{amz_date}\n{credential_scope}\n{canonical_request_hash}"
+
+    def sign(key: bytes, msg: str) -> bytes:
+        return hmac.new(key, msg.encode(), hashlib.sha256).digest()
+
+    k_date = sign(f"AWS4{secret_key}".encode(), date_stamp)
+    k_region = sign(k_date, region)
+    k_service = sign(k_region, service)
+    k_signing = sign(k_service, "aws4_request")
+    signature = hmac.new(k_signing, string_to_sign.encode(), hashlib.sha256).hexdigest()
+
+    authorization = f"{algorithm} Credential={access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
+
+    url = f"{endpoint}/{bucket}/{key}"
+    req = urllib.request.Request(url, method="GET")
+    req.add_header("Host", host)
+    req.add_header("x-amz-content-sha256", empty_hash)
+    req.add_header("x-amz-date", amz_date)
+    req.add_header("Authorization", authorization)
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    with urllib.request.urlopen(req, context=ctx) as response:
+        total_size = int(response.headers.get("Content-Length", 0))
+        downloaded = 0
+        chunk_size = 1024 * 1024  # 1MB chunks
+        with dest_path.open("wb") as f:
+            while True:
+                chunk = response.read(chunk_size)
+                if not chunk:
+                    break
+                f.write(chunk)
+                downloaded += len(chunk)
+                if total_size > 0:
+                    pct = downloaded * 100 // total_size
+                    bar_len = 40
+                    filled = pct * bar_len // 100
+                    bar = "#" * filled + "-" * (bar_len - filled)
+                    print(f"\r  [{bar}] {pct}%", end="", file=sys.stderr, flush=True)
+            if total_size > 0:
+                print("", file=sys.stderr)
 
 
 def safe_extract_tar(archive_path: Path, destination: Path) -> None:
@@ -155,15 +231,13 @@ for idx, artifact in enumerate(artifacts):
     with tempfile.TemporaryDirectory() as td:
         tmp_file = Path(td) / "artifact.bin"
         try:
+            # Step 1: Download
+            print("  [1/3] Downloading...", file=sys.stderr)
             if uri.startswith("s3://"):
-                result = subprocess.run(
-                    ["aws", "s3", "cp", uri, str(tmp_file)],
-                    check=False,
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode != 0:
-                    raise RuntimeError(result.stderr.strip() or "aws s3 cp failed")
+                # Parse s3://bucket/key format
+                s3_path = uri[5:]  # Remove "s3://"
+                bucket, key = s3_path.split("/", 1)
+                s3_download(bucket, key, tmp_file)
             elif uri.startswith("http://") or uri.startswith("https://"):
                 with urllib.request.urlopen(uri) as r:
                     if r.status < 200 or r.status >= 300:
@@ -173,16 +247,26 @@ for idx, artifact in enumerate(artifacts):
             else:
                 raise RuntimeError("Unsupported uri scheme; use s3:// or https://")
 
+            # Step 2: Verify SHA256
             if expected_sha256:
+                print("  [2/3] Verifying SHA256...", end="", file=sys.stderr, flush=True)
                 got = sha256sum(tmp_file)
                 if got.lower() != str(expected_sha256).lower():
+                    print(" FAILED", file=sys.stderr)
                     raise RuntimeError(f"SHA256 mismatch for {uri}: expected {expected_sha256}, got {got}")
+                print(" OK", file=sys.stderr)
+            else:
+                print("  [2/3] Skipping SHA256 verification (none provided)", file=sys.stderr)
 
+            # Step 3: Extract/Copy
             lower_uri = uri.lower()
             if lower_uri.endswith(".tar.gz") or lower_uri.endswith(".tgz"):
+                print("  [3/3] Extracting tar.gz...", end="", file=sys.stderr, flush=True)
                 dest_path.mkdir(parents=True, exist_ok=True)
                 safe_extract_tar(tmp_file, dest_path)
+                print(" Done", file=sys.stderr)
             elif lower_uri.endswith(".zip"):
+                print("  [3/3] Extracting zip...", end="", file=sys.stderr, flush=True)
                 dest_path.mkdir(parents=True, exist_ok=True)
                 with zipfile.ZipFile(tmp_file, "r") as zf:
                     for member in zf.namelist():
@@ -190,9 +274,12 @@ for idx, artifact in enumerate(artifacts):
                         if not str(member_path).startswith(str(dest_path)):
                             raise RuntimeError(f"Unsafe zip member path: {member}")
                     zf.extractall(dest_path)
+                print(" Done", file=sys.stderr)
             else:
+                print("  [3/3] Copying file...", end="", file=sys.stderr, flush=True)
                 dest_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(tmp_file, dest_path)
+                print(" Done", file=sys.stderr)
 
         except Exception as exc:
             if required:
