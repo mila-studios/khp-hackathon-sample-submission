@@ -2,63 +2,41 @@
 set -euo pipefail
 
 # Required environment variables:
-#   S3_BUCKET_NAME  - bucket name
-#   S3_ENDPOINT     - endpoint URL (e.g., https://10.2.16.3)
+#   S3_BUCKET_NAME  - bucket name - fallback to hackathon-test-2256s
+#   S3_ENDPOINT     - endpoint URL - fallback to https://10.2.16.3
 #   S3_ACCESS_KEY   - access key
 #   S3_SECRET_KEY   - secret key
 
-if [[ $# -lt 3 || $# -gt 4 ]]; then
-  echo "Usage: scripts/publish_artifact.sh <team_id> <local_path> <destination> [required:true|false]" >&2
+if [ $# -ne 2 ]; then
+  echo "Usage: scripts/publish_artifact.sh <team_id> <local_path>" >&2
   exit 1
 fi
 
 TEAM_ID="$1"
 LOCAL_PATH="$2"
-DESTINATION="$3"
-REQUIRED="${4:-true}"
 
-# Validate team_id format: team_XXX where XXX is 001-100
+# Validate team_id format: team_XXX where XXX is 001-200
 if [[ ! "$TEAM_ID" =~ ^team_[0-9]{3}$ ]]; then
-  echo "Invalid team_id format: $TEAM_ID (must be team_XXX where XXX is 001-100)" >&2
+  echo "Invalid team_id format: $TEAM_ID (must be team_XXX where XXX is 001-200)" >&2
   exit 1
 fi
 TEAM_NUM="${TEAM_ID#team_}"
 TEAM_NUM_INT=$((10#$TEAM_NUM))  # Force base-10 interpretation
-if [[ $TEAM_NUM_INT -lt 1 || $TEAM_NUM_INT -gt 100 ]]; then
-  echo "Invalid team_id: $TEAM_ID (number must be between 001 and 100)" >&2
+if [[ $TEAM_NUM_INT -lt 1 || $TEAM_NUM_INT -gt 200 ]]; then
+  echo "Invalid team_id: $TEAM_ID (number must be between 001 and 200)" >&2
   exit 1
 fi
-REQUIRED_LOWER="$(printf '%s' "$REQUIRED" | tr '[:upper:]' '[:lower:]')"
-case "$REQUIRED_LOWER" in
-  true|false)
-    REQUIRED="$REQUIRED_LOWER"
-    ;;
-  *)
-    echo "required must be true or false (got: $REQUIRED)" >&2
-    exit 1
-    ;;
-esac
 
 if [[ ! -e "$LOCAL_PATH" ]]; then
   echo "Local path not found: $LOCAL_PATH" >&2
   exit 1
 fi
 
-# Read from environment variables
-BUCKET_NAME="${S3_BUCKET_NAME:-}"
-S3_ENDPOINT="${S3_ENDPOINT:-}"
+# Read from environment variables (with fallbacks for bucket and endpoint)
+BUCKET_NAME="${S3_BUCKET_NAME:-hackathon-test-2256s}"
+S3_ENDPOINT="${S3_ENDPOINT:-https://10.2.16.3}"
 ACCESS_KEY="${S3_ACCESS_KEY:-}"
 SECRET_KEY="${S3_SECRET_KEY:-}"
-
-if [[ -z "$BUCKET_NAME" ]]; then
-  echo "Missing environment variable: S3_BUCKET_NAME" >&2
-  exit 1
-fi
-
-if [[ -z "$S3_ENDPOINT" ]]; then
-  echo "Missing environment variable: S3_ENDPOINT" >&2
-  exit 1
-fi
 
 if [[ -z "$ACCESS_KEY" || -z "$SECRET_KEY" ]]; then
   echo "Missing environment variable: S3_ACCESS_KEY or S3_SECRET_KEY" >&2
@@ -80,7 +58,9 @@ BASENAME="$(basename "$LOCAL_PATH")"
 if [[ -d "$LOCAL_PATH" ]]; then
   ARCHIVE_NAME="${BASENAME}.tar.gz"
   TO_UPLOAD="$TMP_DIR/$ARCHIVE_NAME"
+  echo "Compressing directory to $ARCHIVE_NAME..."
   tar -czf "$TO_UPLOAD" -C "$(dirname "$LOCAL_PATH")" "$BASENAME"
+  echo "Compression complete."
   OBJECT_KEY="${TEAM_ID}/${ARCHIVE_NAME}"
 else
   TO_UPLOAD="$LOCAL_PATH"
@@ -90,6 +70,7 @@ fi
 S3_PATH="s3://${BUCKET_NAME}/${OBJECT_KEY}"
 
 # Compute file hash
+echo "Computing SHA256 hash..."
 if command -v sha256sum >/dev/null 2>&1; then
   SHA256="$(sha256sum "$TO_UPLOAD" | awk '{print $1}')"
 elif command -v shasum >/dev/null 2>&1; then
@@ -100,6 +81,7 @@ else
 fi
 
 SIZE_BYTES="$(wc -c < "$TO_UPLOAD" | tr -d ' ')"
+echo "SHA256: $SHA256"
 
 # S3 Signature Version 4 signing
 REGION="us-east-1"
@@ -158,6 +140,8 @@ AUTHORIZATION="${ALGORITHM} Credential=${ACCESS_KEY}/${CREDENTIAL_SCOPE}, Signed
 UPLOAD_URL="${S3_ENDPOINT}/${BUCKET_NAME}/${OBJECT_KEY}"
 
 echo "Uploading $TO_UPLOAD -> $UPLOAD_URL"
+echo "File size: $SIZE_BYTES bytes"
+echo "Connecting to $S3_HOST..."
 curl -X PUT \
   -H "Content-Type: ${CONTENT_TYPE}" \
   -H "Host: ${S3_HOST}" \
@@ -167,15 +151,15 @@ curl -X PUT \
   -T "${TO_UPLOAD}" \
   --insecure \
   --progress-bar \
+  --connect-timeout 30 \
   "${UPLOAD_URL}"
-
 echo
-echo "size_bytes: $SIZE_BYTES (info only; do not include in hackathon.json)"
+echo "Upload complete."
 echo
 echo "Copy this into hackathon.json artifacts:"
 cat <<EOF
 uri  "$S3_PATH"
-destination  "$DESTINATION"
+destination  "ENTER_DESTINATION_PATH_HERE. E.g., project/models"
 sha256  "$SHA256"
-required  $REQUIRED
+required  true
 EOF

@@ -130,6 +130,7 @@ def s3_download(bucket: str, key: str, dest_path: Path) -> None:
         total_size = int(response.headers.get("Content-Length", 0))
         downloaded = 0
         chunk_size = 1024 * 1024  # 1MB chunks
+        last_milestone = 0
         with dest_path.open("wb") as f:
             while True:
                 chunk = response.read(chunk_size)
@@ -139,12 +140,11 @@ def s3_download(bucket: str, key: str, dest_path: Path) -> None:
                 downloaded += len(chunk)
                 if total_size > 0:
                     pct = downloaded * 100 // total_size
-                    bar_len = 40
-                    filled = pct * bar_len // 100
-                    bar = "#" * filled + "-" * (bar_len - filled)
-                    print(f"\r  [{bar}] {pct}%", end="", file=sys.stderr, flush=True)
-            if total_size > 0:
-                print("", file=sys.stderr)
+                    milestone = pct // 25 * 25  # 0, 25, 50, 75, 100
+                    if milestone > last_milestone:
+                        print(f" {milestone}%", end="", file=sys.stderr, flush=True)
+                        last_milestone = milestone
+            print("", file=sys.stderr)
 
 
 def safe_extract_tar(archive_path: Path, destination: Path) -> None:

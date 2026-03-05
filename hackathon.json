@@ -3,7 +3,7 @@
   "artifacts": [
     {
       "uri": "s3://hackathon-test-2256s/team_101/mmbert_guardrail_demo.tar.gz",
-      "destination": "project/models/_s3_test",
+      "destination": "project/models",
       "sha256": "f6b3f88ca7fd3e6ef04cde15fcc21333f7850426b5e49077324f9d01f628e1ca",
       "required": true
     }
